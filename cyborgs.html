@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CN GRIGORE MOISIL - ROBOTICS EDITION</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@400;600;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --cyan: #00f3ff; --purple: #bc13fe; --green: #00ff9d; --yellow: #ffd700;
+            --bg: #050507;
+        }
+        body { background-color: var(--bg); color: white; font-family: 'Rajdhani', sans-serif; overflow-x: hidden; perspective: 1200px; }
+        h1, h2, h3, .font-tech { font-family: 'Orbitron', sans-serif; }
+        .font-mono { font-family: 'Share Tech Mono', monospace; }
+        
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -10; background: radial-gradient(circle at center, #0a0a12 0%, #000 100%); }
+
+        /* --- NOILE BUTOANE PROFILE 3D (POPOUT) --- */
+        .tab-3d-btn {
+            position: relative;
+            background: #0d0d12;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Efect de arc */
+            transform-style: preserve-3d;
+            /* 3D Shadow Effect (Grosime) */
+            box-shadow: 
+                0 5px 0 #1a1a20, 
+                0 15px 20px rgba(0,0,0,0.4);
+            top: 0;
+        }
+
+        /* Hover - Iese in afara */
+        .tab-3d-btn:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 
+                0 10px 0 var(--shadow-color), 
+                0 20px 40px rgba(var(--shadow-rgb), 0.3);
+            border-color: var(--active-color);
+        }
+
+        .tab-3d-btn:hover h3 { color: var(--active-color); }
+
+        /* Active - Ramane apasat dar luminat */
+        .tab-3d-btn.active {
+            background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0) 100%);
+            transform: translateY(2px);
+            box-shadow: 
+                0 0 0 transparent,
+                0 0 30px var(--active-color);
+            border-color: var(--active-color);
+        }
+
+        .tab-3d-btn.active::after {
+            content: ''; position: absolute; bottom: -10px; left: 10%; width: 80%; height: 2px;
+            background: var(--active-color);
+            box-shadow: 0 0 15px var(--active-color);
+        }
+
+        /* --- BUTON CYBER --- */
+        .btn-cyber {
+            position: relative; padding: 15px 35px; background: rgba(255,255,255,0.02);
+            color: white; font-family: 'Orbitron', sans-serif; font-weight: 700; letter-spacing: 2px;
+            border: 1px solid rgba(255,255,255,0.1); overflow: hidden; transition: 0.3s;
+        }
+        .btn-cyber::after {
+            content: ''; position: absolute; bottom: 0; left: 0; height: 3px; width: 0%;
+            background: var(--cyan); box-shadow: 0 0 15px var(--cyan); transition: width 0.4s;
+        }
+        .btn-cyber:hover {
+            background: rgba(0,243,255,0.05); border-color: var(--cyan); color: var(--cyan);
+            box-shadow: 0 0 30px rgba(0,243,255,0.3); transform: translateY(-3px);
+        }
+        .btn-cyber:hover::after { width: 100%; }
+
+        /* --- GENERAL UI --- */
+        .profile-box {
+            border: 1px solid var(--active-color);
+            background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(var(--active-rgb), 0.05) 100%);
+            backdrop-filter: blur(10px); box-shadow: 0 0 50px rgba(var(--active-rgb), 0.1);
+        }
+        .tech-tag {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2);
+            padding: 6px 15px; font-family: 'Orbitron', sans-serif; font-size: 0.75rem;
+            transition: 0.3s; color: var(--active-color);
+        }
+        .tech-tag:hover { background: var(--active-color); color: black; box-shadow: 0 0 15px var(--active-color); }
+
+        .club-card { border: 1px solid rgba(255,255,255,0.1); background: rgba(15,15,20,0.6); transition: 0.3s; overflow: hidden; }
+        .club-card:hover { border-color: var(--club-color); box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .club-content { max-height: 0; opacity: 0; transition: all 0.5s ease; }
+        .club-card.active .club-content { max-height: 800px; opacity: 1; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; }
+        .club-card.active i.arrow { transform: rotate(180deg); }
+
+        .dash-card { background: rgba(10, 11, 16, 0.7); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; transition: 0.3s; }
+        .dash-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        #zenith-canvas, #lab-canvas { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- NAV -->
+    <nav class="fixed w-full z-50 top-0 bg-black/80 backdrop-blur-lg border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-cube text-3xl text-cyan-400 animate-spin-slow"></i>
+                <div>
+                    <div class="font-tech text-xl text-white leading-none">CN MOISIL</div>
+                    <div class="font-mono text-xs text-purple-500 tracking-[0.3em]">OFFICIAL</div>
+                </div>
+            </div>
+            <div class="hidden md:flex gap-8 text-xs font-bold tracking-widest uppercase text-gray-400 items-center">
+                <a href="#profile" class="hover:text-cyan-400 transition">Profile</a>
+                <a href="#performante" class="hover:text-green-400 transition">Performanță</a>
+                <a href="#cluburi" class="hover:text-yellow-400 transition">Cluburi</a>
+                <a href="#contact" class="text-white border border-white/20 px-3 py-1 rounded hover:bg-white hover:text-black transition"><i class="fas fa-phone-alt mr-2"></i> Contact</a>
+            </div>
+            <button class="btn-cyber" onclick="document.getElementById('aplica').scrollIntoView({behavior:'smooth'})">APLICĂ ACUM</button>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="min-h-[75vh] flex flex-col justify-center items-center text-center pt-24 px-4">
+        <div class="inline-block px-4 py-1 border border-cyan-500/30 rounded bg-cyan-900/10 text-cyan-300 text-xs font-mono mb-6 animate-pulse">
+            :: ELITE EDUCATION ::
+        </div>
+        <h1 class="text-6xl md:text-9xl font-black mb-6 text-white drop-shadow-[0_0_30px_rgba(0,243,255,0.4)]">
+            DIGITAL <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">REALITY</span>
+        </h1>
+        <p class="text-gray-400 text-xl max-w-2xl mx-auto mb-10">
+            Colegiul Național "Grigore Moisil". Pregătim viitorii lideri în tehnologie.
+        </p>
+        <button onclick="document.getElementById('profile').scrollIntoView({behavior:'smooth'})" class="btn-cyber">
+            OFERTA EDUCAȚIONALĂ
+        </button>
+    </section>
+
+    <!-- 1. PROFILE (BUTOANE 3D REALE) -->
+    <section id="profile" class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-4xl font-tech font-bold mb-12 text-center">PROFILE ACADEMICE</h2>
+            
+            <!-- TABS 3D -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+                <!-- Mate -->
+                <div class="tab-3d-btn active" onclick="switchTab('mate')" id="t-mate" style="--active-color: #00f3ff; --shadow-color: #008b94; --shadow-rgb: 0, 243, 255">
+                    <h3 class="text-xl font-bold text-gray-300 mb-1 transition">Mate-Info</h3>
+                    <div class="text-3xl font-mono font-bold text-white">9.52</div>
+                    <div class="text-[10px] text-gray-500 uppercase mt-2">Medie Admitere</div>
+                </div>
+                <!-- Stiinte -->
+                <div class="tab-3d-btn" onclick="switchTab('stiinte')" id="t-stiinte" style="--active-color: #00ff9d; --shadow-color: #009456; --shadow-rgb: 0, 255, 157">
+                    <h3 class="text-xl font-bold text-gray-300 mb-1 transition">Științe Naturii</h3>
+                    <div class="text-3xl font-mono font-bold text-white">9.50</div>
+                    <div class="text-[10px] text-gray-500 uppercase mt-2">Medie Admitere</div>
+                </div>
+                <!-- Filo -->
+                <div class="tab-3d-btn" onclick="switchTab('filo')" id="t-filo" style="--active-color: #ffd700; --shadow-color: #948100; --shadow-rgb: 255, 215, 0">
+                    <h3 class="text-xl font-bold text-gray-300 mb-1 transition">Filologie</h3>
+                    <div class="text-3xl font-mono font-bold text-white">9.17</div>
+                    <div class="text-[10px] text-gray-500 uppercase mt-2">Medie Admitere</div>
+                </div>
+                <!-- Sociale -->
+                <div class="tab-3d-btn" onclick="switchTab('sociale')" id="t-sociale" style="--active-color: #bc13fe; --shadow-color: #660094; --shadow-rgb: 188, 19, 254">
+                    <h3 class="text-xl font-bold text-gray-300 mb-1 transition">Științe Sociale</h3>
+                    <div class="text-3xl font-mono font-bold text-white">9.30</div>
+                    <div class="text-[10px] text-gray-500 uppercase mt-2">Estimare</div>
+                </div>
+            </div>
+
+            <!-- CONTENT BOX -->
+            <div class="profile-box p-10 md:p-14 mt-4 rounded-xl relative" id="p-content" style="--active-color: #00f3ff; --active-rgb: 0, 243, 255">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <h2 class="text-5xl font-tech font-bold mb-6 text-[#00f3ff]" id="p-title">Matematică-Informatică Intensiv</h2>
+                        <p class="text-gray-300 text-lg leading-relaxed mb-10" id="p-desc">
+                            Profilul de elită al colegiului. Programa include <strong class="text-white">4-7 ore de informatică săptămânal</strong> (C++, Algoritmică avansată), Matematică M1 și Fizică aprofundată.
+                        </p>
+                        <div class="flex gap-4 flex-wrap" id="p-tags">
+                            <span class="tech-tag">C++ / JAVA</span>
+                            <span class="tech-tag">WEB DEV</span>
+                            <span class="tech-tag">ROBOTICĂ</span>
+                        </div>
+                    </div>
+                    <div class="bg-black/80 border border-white/10 rounded-xl p-8 shadow-2xl">
+                        <div class="flex justify-between items-center py-4 border-b border-white/10">
+                            <span class="text-gray-400">Olimpiade Naționale</span>
+                            <span class="text-white font-bold text-right">Obligatoriu</span>
+                        </div>
+                        <div class="flex justify-between items-center py-4 border-b border-white/10">
+                            <span class="text-gray-400">Admitere Politehnică</span>
+                            <span class="text-[#00ff9d] font-bold text-right">Rată 98%</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-4">
+                            <span class="text-gray-400">Certificare</span>
+                            <span class="text-white font-bold text-right">Atestat Profesional</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. PERFORMANTA -->
+    <section id="performante" class="py-24 bg-[#020203]">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-4xl font-tech font-bold mb-12 text-center">PERFORMANȚĂ <span class="text-green-400">///</span></h2>
+            
+            <div class="grid grid-cols-12 gap-6">
+                <!-- Rata -->
+                <div class="col-span-12 md:col-span-4 dash-card flex flex-col justify-center items-center text-center">
+                    <div class="text-xs text-gray-400 uppercase font-bold mb-2">Rată Promovare</div>
+                    <div class="text-8xl font-tech font-black text-white">100%</div>
+                    <div class="text-green-500 text-sm mt-2"><i class="fas fa-arrow-up"></i> Constant 5 ani</div>
+                </div>
+                
+                <!-- Palmares -->
+                <div class="col-span-12 md:col-span-8 dash-card bg-[#090a0f]">
+                    <div class="flex justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-white">Palmares Olimpic 2024</h3>
+                        <i class="fas fa-medal text-yellow-500 text-3xl"></i>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="bg-white/5 p-4 rounded border-l-2 border-yellow-500">
+                            <div class="text-3xl font-bold">12</div><div class="text-xs text-gray-400">AUR</div>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded border-l-2 border-gray-400">
+                            <div class="text-3xl font-bold">24</div><div class="text-xs text-gray-400">ARGINT</div>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded border-l-2 border-orange-500">
+                            <div class="text-3xl font-bold">8</div><div class="text-xs text-gray-400">LOT</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="col-span-12 md:col-span-4 dash-card border-cyan-500/30">
+                    <h4 class="text-white font-bold mb-4 text-sm">Destinații Absolvenți</h4>
+                    <div class="h-48 relative"><canvas id="chartDestinatii"></canvas></div>
+                </div>
+                <div class="col-span-12 md:col-span-4 dash-card border-purple-500/30">
+                    <h4 class="text-white font-bold mb-4 text-sm">Evoluție Medii Bac</h4>
+                    <div class="h-48 relative"><canvas id="chartBac"></canvas></div>
+                </div>
+                <div class="col-span-12 md:col-span-2 dash-card">
+                    <h4 class="text-white font-bold mb-4 text-sm text-center">Repartizare</h4>
+                    <div class="h-48 relative flex justify-center"><canvas id="chartGender"></canvas></div>
+                </div>
+                <div class="col-span-12 md:col-span-2 dash-card">
+                    <h4 class="text-white font-bold mb-4 text-sm text-center">Concurență/Loc</h4>
+                    <div class="h-48 relative"><canvas id="chartComp"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. CLUBURI (CU ROBOT 3D NOU) -->
+    <section id="cluburi" class="py-24 relative">
+        <div class="max-w-6xl mx-auto px-6">
+            <h2 class="text-4xl font-tech font-bold mb-10 text-center">ACTIVITĂȚI EXTRACURRICULARE</h2>
+
+            <div class="space-y-6">
+                
+                <!-- ZENITH -->
+                <div class="club-card active" style="--club-color: #bc13fe">
+                    <div class="p-6 flex justify-between items-center cursor-pointer" onclick="this.parentElement.classList.toggle('active')">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded bg-purple-900/30 flex items-center justify-center text-purple-400 text-2xl border border-purple-500/30"><i class="fas fa-robot"></i></div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-white">ZENITH ROBOTICS</h3>
+                                <p class="text-xs text-gray-400 uppercase">FTC Team • Engineering</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-down text-gray-500 arrow transition-transform duration-300"></i>
+                    </div>
+                    <div class="club-content px-8 pb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10 border-t border-white/10 pt-6">
+                            <div class="text-gray-300 text-sm leading-loose">
+                                <p class="mb-4">Divizia de robotică de elită. Echipa proiectează și construiește roboți autonomi de 20kg pentru competiția internațională FIRST Tech Challenge.</p>
+                                <ul class="space-y-2 font-mono text-xs text-purple-300">
+                                    <li>> PROGRAMARE: Java, TensorFlow, OpenCV</li>
+                                    <li>> PROIECTARE: Fusion 360, SolidWorks</li>
+                                </ul>
+                            </div>
+                            <div class="h-48 bg-black border border-purple-500/30 relative rounded-lg overflow-hidden">
+                                <div id="zenith-canvas"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CIVIC MINDS -->
+                <div class="club-card" style="--club-color: #ffd700">
+                    <div class="p-6 flex justify-between items-center cursor-pointer" onclick="this.parentElement.classList.toggle('active')">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded bg-yellow-900/30 flex items-center justify-center text-yellow-400 text-2xl border border-yellow-500/30"><i class="fas fa-landmark"></i></div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-white">CIVIC MINDS</h3>
+                                <p class="text-xs text-gray-400 uppercase">Debate • Diplomacy</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-down text-gray-500 arrow transition-transform duration-300"></i>
+                    </div>
+                    <div class="club-content px-8 pb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10 border-t border-white/10 pt-6">
+                            <div>
+                                <p class="text-gray-300 text-sm leading-loose mb-4">
+                                    Incubatorul viitorilor lideri. Educație juridică și simulări legislative. Elevii învață arta oratoriei și structurarea argumentelor.
+                                </p>
+                                <h4 class="text-yellow-400 font-bold mb-2 text-sm uppercase">Activități:</h4>
+                                <ul class="space-y-2 text-sm text-gray-400">
+                                    <li><i class="fas fa-check text-yellow-500 mr-2"></i><strong>MEP:</strong> Simulări Parlamentul European.</li>
+                                    <li><i class="fas fa-check text-yellow-500 mr-2"></i><strong>EPAS:</strong> Școală Ambasador.</li>
+                                </ul>
+                            </div>
+                            <div class="bg-[#111] p-6 rounded border border-yellow-500/20">
+                                <h4 class="text-white font-bold mb-4">Skill-uri</h4>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-2 py-1 border border-yellow-500/30 rounded text-xs text-yellow-300">Public Speaking</span>
+                                    <span class="px-2 py-1 border border-yellow-500/30 rounded text-xs text-yellow-300">Diplomație</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEM -->
+                <div class="club-card" style="--club-color: #00ff9d">
+                    <div class="p-6 flex justify-between items-center cursor-pointer" onclick="this.parentElement.classList.toggle('active')">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded bg-green-900/30 flex items-center justify-center text-green-400 text-2xl border border-green-500/20"><i class="fas fa-flask"></i></div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-white">STEM RESEARCH</h3>
+                                <p class="text-xs text-gray-400 uppercase">Science • Innovation</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-down text-gray-500 arrow transition-transform duration-300"></i>
+                    </div>
+                    <div class="club-content px-8 pb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10 border-t border-white/10 pt-6">
+                            <div>
+                                <p class="text-gray-300 text-sm leading-loose mb-4">
+                                    Laborator deschis de cercetare aplicată. Experimente complexe în Fizică, Chimie și Biologie, depășind programa școlară.
+                                </p>
+                                <h4 class="text-green-400 font-bold mb-2 text-sm uppercase">Proiecte:</h4>
+                                <ul class="space-y-2 text-sm text-gray-400 font-mono">
+                                    <li>> Analize Spectrale</li>
+                                    <li>> Optică Laser</li>
+                                    <li>> Genetică</li>
+                                </ul>
+                            </div>
+                            <div class="bg-[#111] p-6 rounded border border-green-500/20">
+                                <h4 class="text-white font-bold mb-4">Echipamente</h4>
+                                <ul class="space-y-2 text-sm text-gray-400">
+                                    <li>Microscoape Electronice</li>
+                                    <li>Osciloscoape Digitale</li>
+                                    <li>Senzori Pasco</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- SMART LAB (3D) -->
+    <section id="smartlab" class="py-24 bg-black relative border-t border-white/10">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col lg:flex-row gap-12 items-center">
+            <div class="lg:w-1/2 z-10">
+                <h2 class="text-5xl font-tech font-bold text-white mb-6">SMART LAB <span class="text-cyan-400">VR/AR</span></h2>
+                <p class="text-gray-400 text-lg mb-8 leading-relaxed">
+                    Cel mai avansat laborator școlar din sector. Investiție de <strong>100.000€</strong>. 34 Ochelari VR, Imprimante 3D și Roboți educaționali.
+                </p>
+                <button class="btn-cyber">SOLICITĂ TUR VIRTUAL</button>
+            </div>
+            <div class="lg:w-1/2 h-[400px] bg-[#050508] rounded-xl border border-cyan-500/20 relative overflow-hidden">
+                <div id="lab-canvas"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- APLICA -->
+    <section id="aplica" class="py-24 px-6 bg-[#020203]">
+        <div class="max-w-xl mx-auto dash-card border-t-4 border-cyan-500">
+            <h2 class="text-3xl font-bold text-center mb-8">FORMULAR ÎNSCRIERE</h2>
+            <form class="space-y-4">
+                <input type="text" placeholder="Nume Complet" class="w-full bg-black border border-white/20 p-3 rounded text-white focus:border-cyan-400 outline-none">
+                <input type="email" placeholder="Email" class="w-full bg-black border border-white/20 p-3 rounded text-white focus:border-cyan-400 outline-none">
+                <select class="w-full bg-black border border-white/20 p-3 rounded text-gray-400 focus:border-cyan-400 outline-none">
+                    <option>Alege Profilul</option>
+                    <option>Mate-Info</option>
+                    <option>Științe</option>
+                </select>
+                <button type="button" class="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold hover:shadow-[0_0_20px_rgba(0,243,255,0.5)] transition">TRIMITE</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- CONTACT (DATA REALA) -->
+    <footer id="contact" class="py-12 bg-black border-t border-white/10">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+            <div>
+                <h3 class="text-xl font-bold text-white mb-4 font-tech">CN GRIGORE MOISIL</h3>
+                <p class="text-gray-500 text-sm">Liceul excelenței digitale și al performanței academice.</p>
+            </div>
+            <div class="dash-card border-l-2 border-cyan-500">
+                <h4 class="text-cyan-400 font-bold mb-2">Contact Rapid</h4>
+                <p class="text-white text-lg"><i class="fas fa-phone-alt mr-2"></i> 021 413 26 96</p>
+                <p class="text-gray-400 text-sm mt-1"><i class="fas fa-envelope mr-2"></i> secretariat@moisil.ro</p>
+            </div>
+            <div class="dash-card border-l-2 border-purple-500">
+                <h4 class="text-purple-400 font-bold mb-2">Locație</h4>
+                <p class="text-gray-300 text-sm"><i class="fas fa-map-marker-alt mr-2"></i> Bd. Timișoara nr. 33,<br>Sector 6, București</p>
+            </div>
+        </div>
+        <div class="text-center text-gray-700 font-mono text-xs mt-10">
+            © 2025 CN GRIGORE MOISIL. ALL SYSTEMS OPERATIONAL.
+        </div>
+    </footer>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // --- 1. PROFILE TABS LOGIC ---
+        const profiles = {
+            mate: { title: "Matematică-Informatică Intensiv", color: "#00f3ff", rgb: "0, 243, 255", desc: "Profilul de elită. 4-7 ore de informatică/săptămână. C++, Algoritmică, Grafuri.", tags: ["C++ / JAVA", "WEB", "ROBO"], stats: [["Olimpiade", "Obligatoriu", "text-white"], ["Admitere Poli", "98%", "text-[#00ff9d]"], ["Certificare", "Atestat", "text-white"]] },
+            stiinte: { title: "Științe ale Naturii", color: "#00ff9d", rgb: "0, 255, 157", desc: "Laboratorul viitorilor medici. Chimie și anatomie aprofundată.", tags: ["CHIMIE", "BIO", "MEDICINĂ"], stats: [["Admitere UMF", "95%", "text-[#00ff9d]"], ["Laborator", "4h/Săpt", "text-white"], ["Proiecte", "Eco", "text-white"]] },
+            filo: { title: "Filologie Bilingv", color: "#ffd700", rgb: "255, 215, 0", desc: "Cultură și limbi străine. Jurnalism, Teatru, Cambridge.", tags: ["DEBATE", "CAMBRIDGE", "JURNALISM"], stats: [["Certificate", "C1/C2", "text-[#ffd700]"], ["Limbi", "3", "text-white"], ["Mobilități", "Erasmus+", "text-white"]] },
+            sociale: { title: "Științe Sociale", color: "#bc13fe", rgb: "188, 19, 254", desc: "Psihologie, Logică, Drept. Gândire critică.", tags: ["DREPT", "PSIHOLOGIE", "LOGICĂ"], stats: [["Admitere Drept", "Top 3", "text-[#bc13fe]"], ["Istorie", "Intensiv", "text-white"], ["Club", "Debate", "text-white"]] }
+        };
+
+        function switchTab(id) {
+            document.querySelectorAll('.tab-3d-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('t-'+id).classList.add('active');
+            const p = profiles[id];
+            const box = document.getElementById('p-content');
+            box.style.setProperty('--active-color', p.color);
+            box.style.setProperty('--active-rgb', p.rgb);
+            document.getElementById('p-title').innerText = p.title;
+            document.getElementById('p-title').style.color = p.color;
+            document.getElementById('p-desc').innerHTML = p.desc;
+            document.getElementById('p-tags').innerHTML = p.tags.map(t => `<span class="tech-tag">${t}</span>`).join('');
+            const rb = box.querySelector('.bg-black\\/80');
+            rb.innerHTML = p.stats.map((s,i) => `<div class="flex justify-between py-4 border-b border-white/10"><span class="text-gray-400">${s[0]}</span><span class="${s[2]} font-bold">${s[1]}</span></div>`).join('');
+        }
+
+        // --- 2. CHARTS ---
+        const commonOpt = { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}} };
+        new Chart(document.getElementById('chartDestinatii'), { type: 'bar', data: { labels:['P','U','E','M'], datasets:[{data:[45,30,15,10], backgroundColor:['#00FFFF','#444','#BD00FF','#00FF00'], borderRadius:4}] }, options: { ...commonOpt, scales:{y:{grid:{color:'rgba(255,255,255,0.1)'}}, x:{grid:{display:false}}} } });
+        new Chart(document.getElementById('chartBac'), { type: 'line', data: { labels:['19','20','21','22','23'], datasets:[{data:[9.1,9.2,9.35,9.48,9.52], borderColor:'#BD00FF', borderWidth:3}] }, options: { ...commonOpt, scales:{y:{min:9, grid:{color:'rgba(255,255,255,0.1)'}}} } });
+        new Chart(document.getElementById('chartGender'), { type: 'doughnut', data: { labels:['Fete','Băieți'], datasets:[{data:[55,45], backgroundColor:['#ff0055','#00f3ff'], borderWidth:0}] }, options: { cutout:'70%', plugins:{legend:{position:'bottom', labels:{color:'white', font:{size:10}}}} } });
+        new Chart(document.getElementById('chartComp'), { type: 'bar', data: { labels:['MI','SN','SS','F'], datasets:[{data:[4.5, 3.2, 2.8, 2.5], backgroundColor:'#ffd700', borderRadius:4}] }, options: commonOpt });
+
+        // --- 3. THREE.JS BACKGROUND & ROBOT ---
+        const bgC = document.getElementById('bg-canvas');
+        const sc1 = new THREE.Scene();
+        const cam1 = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const ren1 = new THREE.WebGLRenderer({canvas:bgC, alpha:true});
+        ren1.setSize(window.innerWidth, window.innerHeight);
+
+        // Network BG
+        const pCount = 150;
+        const pGeo = new THREE.BufferGeometry();
+        const pPos = new Float32Array(pCount*3);
+        const pVel = [];
+        for(let i=0; i<pCount; i++) {
+            pPos[i*3] = (Math.random()-0.5)*30; pPos[i*3+1] = (Math.random()-0.5)*30; pPos[i*3+2] = (Math.random()-0.5)*15;
+            pVel.push({x:(Math.random()-0.5)*0.02, y:(Math.random()-0.5)*0.02, z:(Math.random()-0.5)*0.02});
+        }
+        pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+        const points = new THREE.Points(pGeo, new THREE.PointsMaterial({color:0x00f3ff, size:0.1, transparent:true, opacity:0.8}));
+        sc1.add(points);
+        const lineGeo = new THREE.BufferGeometry();
+        const lines = new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({color:0x00f3ff, transparent:true, opacity:0.15}));
+        sc1.add(lines);
+        cam1.position.z = 10;
+
+        // --- NEW ROBOT 3D (ZENITH) ---
+        const zDiv = document.getElementById('zenith-canvas');
+        const sc2 = new THREE.Scene();
+        const cam2 = new THREE.PerspectiveCamera(50, zDiv.clientWidth/zDiv.clientHeight, 0.1, 1000);
+        const ren2 = new THREE.WebGLRenderer({alpha:true, antialias:true});
+        ren2.setSize(zDiv.clientWidth, zDiv.clientHeight);
+        zDiv.appendChild(ren2.domElement);
+        
+        // Lights
+        sc2.add(new THREE.AmbientLight(0x404040));
+        sc2.add(new THREE.PointLight(0xbc13fe, 1, 20));
+
+        const robot = new THREE.Group();
+        sc2.add(robot);
+
+        // Head
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.7, 0.8), new THREE.MeshStandardMaterial({color:0x333}));
+        head.position.y = 1.2;
+        // Eyes
+        const eyeGeo = new THREE.SphereGeometry(0.15, 16, 16);
+        const eyeMat = new THREE.MeshBasicMaterial({color:0x00ff9d});
+        const le = new THREE.Mesh(eyeGeo, eyeMat); le.position.set(-0.2, 1.2, 0.35);
+        const re = new THREE.Mesh(eyeGeo, eyeMat); re.position.set(0.2, 1.2, 0.35);
+        robot.add(head); robot.add(le); robot.add(re);
+
+        // Body
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.4, 1.2, 8), new THREE.MeshStandardMaterial({color:0x555}));
+        body.position.y = 0.2;
+        robot.add(body);
+
+        // Arms
+        const armGeo = new THREE.CylinderGeometry(0.1, 0.1, 1);
+        const la = new THREE.Mesh(armGeo, new THREE.MeshStandardMaterial({color:0x888}));
+        la.position.set(-0.8, 0.5, 0); la.rotation.z = 0.5;
+        const ra = new THREE.Mesh(armGeo, new THREE.MeshStandardMaterial({color:0x888}));
+        ra.position.set(0.8, 0.5, 0); ra.rotation.z = -0.5;
+        robot.add(la); robot.add(ra);
+
+        cam2.position.set(0, 1, 5);
+
+        // --- LAB 3D ---
+        const lDiv = document.getElementById('lab-canvas');
+        const sc3 = new THREE.Scene();
+        const cam3 = new THREE.PerspectiveCamera(60, lDiv.clientWidth/lDiv.clientHeight, 0.1, 1000);
+        const ren3 = new THREE.WebGLRenderer({alpha:true, antialias:true});
+        ren3.setSize(lDiv.clientWidth, lDiv.clientHeight);
+        lDiv.appendChild(ren3.domElement);
+        sc3.add(new THREE.PointLight(0x00f3ff, 1, 20));
+        const printer = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), new THREE.MeshBasicMaterial({color:0x00f3ff, wireframe:true}));
+        sc3.add(printer);
+        cam3.position.set(3,3,3); cam3.lookAt(0,0,0);
+
+        let t=0;
+        function animate() {
+            requestAnimationFrame(animate); t+=0.02;
+            
+            // Network Logic
+            const pos = points.geometry.attributes.position.array;
+            const lPos = [];
+            for(let i=0; i<pCount; i++) {
+                pos[i*3] += pVel[i].x; pos[i*3+1] += pVel[i].y;
+                if(pos[i*3]>15||pos[i*3]<-15) pVel[i].x*=-1; if(pos[i*3+1]>15||pos[i*3+1]<-15) pVel[i].y*=-1;
+                for(let j=i+1; j<pCount; j++) {
+                    if(Math.sqrt(Math.pow(pos[i*3]-pos[j*3],2) + Math.pow(pos[i*3+1]-pos[j*3+1],2)) < 4) {
+                        lPos.push(pos[i*3], pos[i*3+1], pos[i*3+2], pos[j*3], pos[j*3+1], pos[j*3+2]);
+                    }
+                }
+            }
+            points.geometry.attributes.position.needsUpdate = true;
+            lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(lPos, 3));
+            ren1.render(sc1, cam1);
+
+            // Robot Anim
+            robot.rotation.y = Math.sin(t*0.5)*0.5;
+            head.rotation.y = Math.sin(t)*0.5;
+            la.rotation.x = Math.sin(t*2);
+            ren2.render(sc2, cam2);
+
+            printer.rotation.y += 0.005; ren3.render(sc3, cam3);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            ren1.setSize(window.innerWidth, window.innerHeight); cam1.aspect = window.innerWidth/window.innerHeight; cam1.updateProjectionMatrix();
+        });
+    </script>
+</body>
+</html>
